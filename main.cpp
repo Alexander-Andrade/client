@@ -4,7 +4,7 @@
 int main(int argc,char* argv[])
 {
 	//IP & port from command line
-	//my new code
+
 	if (argc != 3)
 	{
 		cout << "incorrect server address" << endl;
