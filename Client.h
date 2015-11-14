@@ -55,7 +55,7 @@ protected:
 	{
 		Connection::receiveFile((Socket*)_socket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
 		//send confirm to the server handshake
-		return sendConfirm(*_socket);
+		return _socket->sendConfirm();
 	}
 
 	Socket* tryToReconnect(int timeOut)

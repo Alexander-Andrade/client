@@ -51,7 +51,7 @@ struct InetAddress
 class Socket
 {
 public:
-	enum class Selection { ReadCheck, WriteCheck };
+	enum class Selection { ReadCheck, WriteCheck, ExceptCheck };
 protected:
 	//socket handle
 	SOCKET _handle;
@@ -164,6 +164,17 @@ public:
 #endif
 		return ::send(_handle, buffer, length, flags);
 	}
+
+	int send_OOB_byte(char byte)
+	{
+		return ::send(_handle, (char*)byte, 1, MSG_OOB);
+	}
+
+	int recv_OOB_byte(char& byte)
+	{
+		return recv(_handle, (char*)byte, 1, MSG_OOB);
+	}
+
 	int receive(char* buffer, int length)
 	{
 		return recv(_handle, buffer, length, 0);
@@ -181,6 +192,23 @@ public:
 	{
 		int length = sizeof(obj);
 		return receive((char*)&obj, length) == length;
+	}
+
+	bool sendConfirm()
+	{//previos op confirmation
+		char conf = 1;
+		return send(conf);
+	}
+	bool sendRefuse()
+	{//previos op refutation
+		char refuse = 0;
+		return send(refuse);
+	}
+	bool receiveAck()
+	{//get confirm or refuse ->return true,false
+		char ack = 0;
+		receive<char>(ack);
+		return ack ? true : false;
 	}
 
 	string receiveMessage()
@@ -285,6 +313,7 @@ public:
 		FD_ZERO(&set);	
 		FD_SET(_handle, &set);	    
 		int retVal = 0;
+
 		if (selection == Selection::WriteCheck)
 			retVal = ::select(_handle + 1,	//Ignored. The nfds parameter is included only for compatibility with Berkeley sockets.
 				&set,//An optional pointer to a set of sockets to be checked for readability.
@@ -294,6 +323,9 @@ public:
 				);
 		else if (selection == Selection::ReadCheck)
 			retVal = ::select(_handle + 1, NULL, &set, NULL, &timeOut);
+
+		else if(selection == Selection::ExceptCheck)
+			retVal = ::select(_handle + 1, NULL, NULL, &set, &timeOut);
 
 		return ((retVal != 0) && FD_ISSET(_handle, &set));
 	}
