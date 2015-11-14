@@ -40,6 +40,8 @@ public:
 		else
 			_socket->sendConfirm();
 
+		//make socket unblocked
+		_socket->makeUnblocked();
 		//total size of the transmitting file
 		_fileLength = getFileLength(_rdFile);
 
@@ -50,9 +52,6 @@ public:
 
 		int fileByteRead = 0;
 		int bytesWrite = 0;
-
-		//make socket unblocked
-		_socket->makeUnblocked();
 
 		while (true)
 		{
@@ -87,12 +86,10 @@ public:
 			catch (exception e)
 			{
 				if (!tryToRestoreConnectionFromTransmittingSide()) break;
-				_socket->makeUnblocked();
 			}
 		}
 
 		_rdFile.close();
-		_socket->makeBlocked();
 		return true;
 	}
 
@@ -117,14 +114,13 @@ public:
 
 		int bytesRead = 0;
 
-		_socket->makeUnblocked();
-
 		//file writing
 		while (true)
 		{
 			try
 			{
-				_socket->select(Socket::Selection::ExceptCheck, _timeOut);
+
+				//port reading
 				bytesRead = _socket->receive(_buffer.data(), _bufLen);
 
 				if (bytesRead == SOCKET_ERROR)
@@ -147,12 +143,10 @@ public:
 			catch (exception e)
 			{
 				if (!tryToRestoreConnectionFromReceivingSide()) break;
-				_socket->makeUnblocked();
 			}
 		}
 
 		_wrFile.close();
-		_socket->makeBlocked();
 		return _fileLength == _totallyBytesReceived;
 	}
 
