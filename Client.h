@@ -7,7 +7,7 @@ class Client : public Connection
 protected:
 	unique_ptr<ClientSocket> _socket;
 public:
-	Client(char* nodeName, char* serviceName,int sendBufLen = 1024, int timeOut = 30) : Connection(sendBufLen,timeOut)
+	Client(char* nodeName, char* serviceName,int sendBufLen = 2048, int timeOut = 30) : Connection(sendBufLen,timeOut)
 	{
 		_socket.reset(new ClientSocket(nodeName,serviceName));
 		//send id to server
