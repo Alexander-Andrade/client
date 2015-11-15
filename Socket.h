@@ -167,17 +167,17 @@ public:
 
 	int send_OOB_byte(char byte)
 	{
-		return ::send(_handle, (char*)byte, 1, MSG_OOB);
+		return ::send(_handle, (char*)&byte, 1, MSG_OOB);
 	}
 
 	int recv_OOB_byte(char& byte)
 	{
-		return recv(_handle, (char*)byte, 1, MSG_OOB);
+		return ::recv(_handle, (char*)&byte, 1, MSG_OOB);
 	}
 
 	int receive(char* buffer, int length)
 	{
-		return recv(_handle, buffer, length, 0);
+		return ::recv(_handle, buffer, length, 0);
 	}
 
 	template<typename T>
