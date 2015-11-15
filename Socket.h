@@ -616,7 +616,7 @@ protected:
 	}
 
 	void attachServerSocket_() { if (!attachServerSocket()) socketError("fail to attach to the port"); }
-
+public:
 	bool attachClientSocket()
 	{
 
@@ -635,7 +635,7 @@ protected:
 		//если не подключились к серверу
 		return _handle != INVALID_SOCKET;
 	}
-
+protected:
 	void attachClientSocket_() { if (!attachClientSocket()) socketError("Unable to connect to server"); }
 
 	//------------------------ закрытие объекта--------------------------------------//

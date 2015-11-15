@@ -6,10 +6,12 @@ class Client : public Connection
 {
 protected:
 	unique_ptr<ClientSocket> _socket;
+	unique_ptr<UDP_ClientSocket> _udpSocket;
 public:
 	Client(char* nodeName, char* serviceName,int sendBufLen = 2048, int timeOut = 30) : Connection(sendBufLen,timeOut)
 	{
 		_socket.reset(new ClientSocket(nodeName,serviceName));
+		_udpSocket.reset(new UDP_ClientSocket(nodeName,serviceName));
 		//send id to server
 		_socket->send(_id);
 		
@@ -58,6 +60,17 @@ protected:
 		return _socket->sendConfirm();
 	}
 
+	bool sendFileUdp(string& message)
+	{
+		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+	}
+	bool receiveFileUdp(string& message)
+	{
+		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+		//send confirm to the server handshake
+		return _socket->sendConfirm();
+	}
+
 	Socket* tryToReconnect(int timeOut)
 	{
 		time_t firstTimePoint = std::time(NULL);
@@ -67,7 +80,7 @@ protected:
 
 			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
 			if (timeDifference > timeOut) break;
-			if (_socket->establishConnection())
+			if (_socket->attachClientSocket())
 			{	//it managed to reconnect
 				//send client id to server
 				_socket->send(_id);
@@ -82,6 +95,8 @@ protected:
 	{
 		_commandMap[string("upload")] = std::bind(&Client::sendFile, this, std::placeholders::_1);
 		_commandMap[string("download")] = std::bind(&Client::receiveFile, this, std::placeholders::_1);
+		_commandMap[string("upload_udp")] = std::bind(&Client::sendFileUdp, this, std::placeholders::_1);
+		_commandMap[string("download_udp")] = std::bind(&Client::receiveFileUdp, this, std::placeholders::_1);
 	}
 
 };
