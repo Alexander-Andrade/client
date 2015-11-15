@@ -168,6 +168,7 @@ public:
 		}
 
 		_wrFile.close();
+		_socket->disableReceiveTimeOut();
 		return _fileLength == _totallyBytesReceived;
 	}
 
