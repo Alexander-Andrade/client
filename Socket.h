@@ -105,7 +105,7 @@ public:
 	const std::string& IP()const { return _inetAddress.IP; }
 	const std::string& port()const { return _inetAddress.port; }
 
-	const int protocol()const {return _protocol;}
+	const int protocol()const { return _protocol; }
 
 	u_long keepAliveTimeOut()const { return _keepAliveTimeOut; }
 	u_long keepAliveInterval()const { return _keepAliveInterval; }
@@ -215,11 +215,25 @@ public:
 		return send((char *)&obj, length) == length;
 	}
 
+	template<typename T>
+	bool send(T* arr, int size)
+	{
+		int length = size * sizeof(T);
+		return send((char*)arr, length);
+	}
+
 	template <typename T>
 	bool receive(T& obj)
 	{
 		int length = sizeof(obj);
 		return receive((char*)&obj, length) == length;
+	}
+
+	template<typename T>
+	bool receive(T* arr, int size)
+	{
+		int length = size * sizeof(T);
+		return receive((char*)arr, length);
 	}
 
 	bool sendConfirm()
@@ -662,7 +676,6 @@ protected:
 	bool getAddrInfo(int family, int socktype, int protocol, int flags)
 	{
 		_protocol = protocol;
-
 		//создаёт прослушивающий сокет
 		memset(&_hints, 0, sizeof(_hints));
 		_hints.ai_family = family;
