@@ -57,7 +57,8 @@ protected:
 	SOCKET _handle;
 	//The addrinfo structure is used by the getaddrinfo function to hold host address information.
 	addrinfo *_result;
-
+	//for UDP server address
+	addrinfo* _pServAddr;
 	//The family, socktype and proto arguments can be optionally
 	//specified in order to narrow the list of addresses returned.
 	addrinfo _hints;
@@ -600,7 +601,7 @@ protected:
 		return true;
 	}
 
-	bool attachServerSocket()
+	virtual bool attachServerSocket()
 	{
 		addrinfo* ptr;
 		for (ptr = _result; ptr != NULL; ptr->ai_next)
@@ -616,8 +617,8 @@ protected:
 	}
 
 	void attachServerSocket_() { if (!attachServerSocket()) socketError("fail to attach to the port"); }
-public:
-	bool attachClientSocket()
+
+	virtual bool attachClientSocket()
 	{
 
 		//подключиться к серверу
@@ -635,7 +636,7 @@ public:
 		//если не подключились к серверу
 		return _handle != INVALID_SOCKET;
 	}
-protected:
+
 	void attachClientSocket_() { if (!attachClientSocket()) socketError("Unable to connect to server"); }
 
 	//------------------------ закрытие объекта--------------------------------------//
@@ -853,14 +854,27 @@ public:
 
 private:
 
+	bool attachClientSocket() override
+	{
+		addrinfo* ptr;
+		for (ptr = _result; ptr != NULL; ptr = ptr->ai_next)
+		{
+			if (socket(ptr))
+			{
+				_pServAddr = ptr;
+				break;
+			}
+		}
+	}
+
 	int recveive(char* buffer, int length, int flags) override
 	{
-		return ::recvfrom(_handle, buffer, length, flags, (sockaddr*)&_peerAddr, &_peerAddrLen);
+		return ::recvfrom(_handle, buffer, length, flags, (sockaddr*)_pServAddr->ai_addr, &(*(int*)_pServAddr->ai_addrlen));
 	}
 
 	int send(const char* buffer, int length, int flags) override
 	{
-		return ::sendto(_handle, buffer, length, flags, (sockaddr*)&_peerAddr, _peerAddrLen);
+		return ::sendto(_handle, buffer, length, flags, (sockaddr*)_pServAddr->ai_addr, _pServAddr->ai_addrlen);
 	}
 };
 
