@@ -15,11 +15,6 @@ public:
 		//send id to server
 		_socket->send(_id);
 		
-		//if (!_socket->setReceiveBufferSize(receiveBufLen))
-		//	throw runtime_error("fail to set receive buffer size");
-		if (!_socket->setSendBufferSize(sendBufLen))
-			throw runtime_error("fali to set send buffer size");
-
 		fillCommandMap();
 	}
 
@@ -62,10 +57,14 @@ protected:
 
 	bool sendFileUdp(string& message)
 	{
+		//send client address to server for udp communication
+		char arg = 0;
+		_udpSocket->send<char>(arg);
 		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
 	}
 	bool receiveFileUdp(string& message)
 	{
+		//send client address to server for udp communication
 		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
 		//send confirm to the server handshake
 		return _socket->sendConfirm();
