@@ -46,11 +46,11 @@ protected:
 	//------------------------------------files--------------------------------------//
 	bool sendFile(string& message)
 	{
-		return Connection::sendFile((Socket*)_socket.get(), message,std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+		return Connection::sendFile((Socket*)_socket.get(), message,std::bind(&Client::tryToReconnect, this, (Socket*)_socket.get(), std::placeholders::_1));
 	}
 	bool receiveFile(string& message)
 	{
-		Connection::receiveFile((Socket*)_socket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+		Connection::receiveFile((Socket*)_socket.get(), message, std::bind(&Client::tryToReconnect, this, (Socket*)_socket.get(), std::placeholders::_1));
 		//send confirm to the server handshake
 		return _socket->sendConfirm();
 	}
@@ -60,17 +60,21 @@ protected:
 		//send client address to server for udp communication
 		char arg = 0;
 		_udpSocket->send<char>(arg);
-		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+
+		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, _udpSocket.get() , std::placeholders::_1));
 	}
 	bool receiveFileUdp(string& message)
 	{
+		char arg = 0;
+		_udpSocket->send<char>(arg);
+
 		//send client address to server for udp communication
-		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
+		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, _udpSocket.get() ,std::placeholders::_1));
 		//send confirm to the server handshake
 		return _socket->sendConfirm();
 	}
 
-	Socket* tryToReconnect(int timeOut)
+	Socket* tryToReconnect(Socket* socket,int timeOut)
 	{
 		time_t firstTimePoint = std::time(NULL);
 		time_t timeDifference;
@@ -79,12 +83,12 @@ protected:
 
 			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
 			if (timeDifference > timeOut) break;
-			if (_socket->attachClientSocket())
+			if (socket->attachClientSocket())
 			{	//it managed to reconnect
 				//send client id to server
-				_socket->send(_id);
+				socket->send(_id);
 
-				return (Socket*)_socket.get();
+				return socket;
 			}
 		}
 		return nullptr;
