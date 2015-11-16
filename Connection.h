@@ -24,7 +24,7 @@ private:
 	int _totallyBytesReceived;
 	int _totallyBytesSend;
 public:
-	FileWorker(Socket* socket, std::function<Socket*(int)>& tryToReconnect,int bufLen, int timeOut) : _bufLen(bufLen),_timeOut(timeOut)
+	FileWorker(Socket* socket, std::function<Socket*(int)>& tryToReconnect, int bufLen, int timeOut) : _bufLen(bufLen), _timeOut(timeOut)
 	{
 		_socket = socket;
 		_tryToReconnect = tryToReconnect;
@@ -37,22 +37,22 @@ public:
 	{
 		//send timeout less than receive timeout
 		if (!_socket->setSendTimeOut(_timeOut >> 2)) return false;	//(/4)
-		//try to set system buffer size = _bufLen
+																	//try to set system buffer size = _bufLen
 		if (!_socket->setSendBufferSize(_bufLen)) return  false;
 	}
 	ostream& outFileInfo(ostream& stream)
 	{
-		stream <<endl<< "file name: " << _fileName;
+		stream << endl << "file name: " << _fileName;
 		stream << endl << "file size: " << _fileLength;
 		stream << endl;
 		return stream;
 	}
-	ostream& showPercents(ostream& stream,int loadingPercent,int milestone,char placeholder)
+	ostream& showPercents(ostream& stream, int loadingPercent, int milestone, char placeholder)
 	{
 		static int totalPercent = 1;
-	
-		for (int i = totalPercent;i <= loadingPercent;i++)
-			if (i % milestone == 0 )
+
+		for (int i = totalPercent; i <= loadingPercent; i++)
+			if (i % milestone == 0)
 				stream << i << endl;
 			else
 				stream << placeholder;
@@ -63,7 +63,7 @@ public:
 	void trackSendPercent()
 	{
 		int loadingPercent = percentOfLoading(_totallyBytesSend);
-		showPercents(cout, loadingPercent,20,'.');
+		showPercents(cout, loadingPercent, 20, '.');
 		//send OOB_byte
 		_socket->send_OOB_byte(loadingPercent);
 	}
@@ -71,7 +71,7 @@ public:
 	{
 		char loadingPercent = 0;
 		_socket->recv_OOB_byte(loadingPercent);
-		showPercents(cout,loadingPercent,20,'.');
+		showPercents(cout, loadingPercent, 20, '.');
 	}
 	char percentOfLoading(int bytesWrite)
 	{
@@ -89,7 +89,7 @@ public:
 		}
 		else
 			_socket->sendConfirm();
-		
+
 		setupSendingSocket();
 		//real system buffer size
 		_bufLen = _socket->getSendBufferSize();
@@ -118,7 +118,7 @@ public:
 				fileByteRead = _rdFile.gcount();
 				if (!_rdFile.eof() && _bufLen != fileByteRead)
 					return false;
-				
+
 				bytesWrite = _socket->send(_buffer.data(), fileByteRead);
 
 				if (bytesWrite == SOCKET_ERROR)
@@ -126,7 +126,7 @@ public:
 
 				_totallyBytesSend += bytesWrite;
 				//send OOB byte with loading percent value
-				if(_socket->type() == Socket::Type::TCP)
+				if (_socket->protocol() == IPPROTO_TCP)
 					trackSendPercent();
 
 				if (_rdFile.eof())
@@ -141,7 +141,7 @@ public:
 						break;
 					else
 						throw runtime_error("connection is lost");
-					
+
 				}
 				//send OOB byte
 			}
@@ -200,7 +200,7 @@ public:
 				_wrFile.write(_buffer.data(), bytesRead);
 				_totallyBytesReceived += bytesRead;
 				//recv OOB byte with loading percent value
-				if(_socket->type() == Socket::Type::TCP)
+				if (_socket->protocol() == IPPROTO_TCP)
 					trackReceivePercent();
 
 				//end of transmittion check
@@ -253,7 +253,7 @@ private:
 			_rdFile.clear();
 		return true;
 	}
-		
+
 	static int getFileLength(std::ifstream& file)
 	{
 		//cursor to the end of file
@@ -299,9 +299,9 @@ protected:
 		string command = cutSuitableSubstring(request, "[A-Za-z0-9_]+");
 		//check command
 		if (checkCommandExistance(command))
-		{	
+		{
 			//command execution
-			_commandMap[command](request);		
+			_commandMap[command](request);
 			return true;
 		}
 		//there is no such command
@@ -326,7 +326,7 @@ protected:
 		std::regex regExp(pattern);
 		std::smatch matches;
 		std::regex_search(message, matches, regExp);
-	
+
 		string result = matches.empty() ? string("") : matches[0];
 		message = matches.suffix().str();
 
@@ -338,7 +338,7 @@ protected:
 		std::regex regExp(pattern);
 		std::smatch matches;
 		std::regex_search(message, matches, regExp);
-		
+
 		return matches.empty() ? string("") : matches[0];
 	}
 
@@ -347,7 +347,7 @@ protected:
 	bool sendFile(Socket* socket, string& message, std::function<Socket*(int)> tryToReconnect)
 	{
 		string fileName = getFirstPatternedSubstring(message, "[A-Za-z0-9]+.[A-Za-z0-9]+");
-		FileWorker fileWorker(socket,tryToReconnect,_bufLen,_timeOut);
+		FileWorker fileWorker(socket, tryToReconnect, _bufLen, _timeOut);
 		return fileWorker.send(fileName);
 	}
 
