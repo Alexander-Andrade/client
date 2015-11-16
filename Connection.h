@@ -65,7 +65,7 @@ public:
 			throw runtime_error("connection is lost");
 		}
 		//compare local and remote
-		int areEqual = std::equal(_receivedDatagrams.begin(), _receivedDatagrams.end(), _trackedDatagrams);
+		int areEqual = std::equal(_receivedDatagrams.begin(), _receivedDatagrams.end(), _trackedDatagrams.begin(),_trackedDatagrams.end());
 		_receivedDatagrams.clear();
 		_trackedDatagrams.clear();
 
