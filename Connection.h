@@ -30,7 +30,7 @@ private:
 	vector<int> _receivedDatagrams;
 	int _nPacks;
 public:
-	FileWorker(Socket* socket, std::function<Socket*(int)>& tryToReconnect, int bufLen, int timeOut, int nPacks = 4) : _bufLen(bufLen), _timeOut(timeOut)
+	FileWorker(Socket* socket, std::function<Socket*(int)>& tryToReconnect, int bufLen, int timeOut, int nPacks = 1) : _bufLen(bufLen), _timeOut(timeOut)
 	{
 		_socket = socket;
 		_tryToReconnect = tryToReconnect;
@@ -57,7 +57,7 @@ public:
 		_socket->setReceiveTimeOut(_timeOut >> 1);
 
 		_receivedDatagrams.resize(_nPacks);
-		int recvRealSize = _socket->receive(_receivedDatagrams.data(), _receivedDatagrams.size());
+		int recvRealSize = _socket->receiveArray(_receivedDatagrams.data(), _receivedDatagrams.size());
 		if (recvRealSize != _trackedDatagrams.size())
 		{
 			_receivedDatagrams.clear();
@@ -79,7 +79,7 @@ public:
 			_receivedDatagrams.push_back(_totallyBytesReceived);
 		else
 		{
-			_socket->send(_receivedDatagrams.data(), _receivedDatagrams.size());
+			_socket->sendArray(_receivedDatagrams.data(), _receivedDatagrams.size());
 			_receivedDatagrams.clear();
 		}
 	}
@@ -100,13 +100,23 @@ public:
 	}
 	ostream& showPercents(ostream& stream, int loadingPercent, int milestone, char placeholder)
 	{
-		static int totalPercent = 1;
+		static int totalPercent = 0;
 
-		for (int i = totalPercent; i <= loadingPercent; i++)
+		if (!loadingPercent) return stream;
+		//skip zeros
+		int i = totalPercent;
+		if (i == 0) i++;
+		for (i; i < loadingPercent; i++)
 			if (i % milestone == 0)
 				stream << i << endl;
 			else
 				stream << placeholder;
+
+		if (loadingPercent == 100)
+		{
+			stream << loadingPercent << endl;
+			totalPercent = 0;
+		}
 
 		totalPercent += loadingPercent - totalPercent;
 		return stream;
