@@ -75,6 +75,8 @@ protected:
 	//address socket connected to (not localmashine)
 	InetAddress _inetAddress;
 
+	int _protocol;
+
 	u_long _keepAliveTimeOut;
 	u_long _keepAliveInterval;
 
@@ -103,9 +105,7 @@ public:
 	const std::string& IP()const { return _inetAddress.IP; }
 	const std::string& port()const { return _inetAddress.port; }
 
-	const int type()const { return _hints.ai_socktype; }
-	const int family()const { return _hints.ai_family; }
-	const int protocol()const { return _hints.ai_protocol; }
+	const int protocol()const {return _protocol;}
 
 	u_long keepAliveTimeOut()const { return _keepAliveTimeOut; }
 	u_long keepAliveInterval()const { return _keepAliveInterval; }
@@ -497,6 +497,8 @@ protected:
 		//IP-portNo
 		_inetAddress.IP = IP;
 		_inetAddress.port = port;
+
+		_protocol = IPPROTO_TCP;
 	}
 	template<typename T>
 	bool setSockOpt(int level, int optname, T optval)
@@ -659,6 +661,8 @@ protected:
 	//-----------------------------обёртки для вызовов функций сокетов-----------------------------//
 	bool getAddrInfo(int family, int socktype, int protocol, int flags)
 	{
+		_protocol = protocol;
+
 		//создаёт прослушивающий сокет
 		memset(&_hints, 0, sizeof(_hints));
 		_hints.ai_family = family;
