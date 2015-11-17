@@ -98,7 +98,7 @@ protected:
 		time_t firstTimePoint = std::time(NULL);
 		time_t timeDifference;
 		int answer = 0;
-		
+		/*
 		while (true)
 		{
 			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
@@ -106,6 +106,7 @@ protected:
 
 			if (_udpSocket->attachClientSocket()) break;
 		}
+		*/
 		int window = timeOut / 6;
 		_udpSocket->setReceiveTimeOut(window);
 		while (true)
