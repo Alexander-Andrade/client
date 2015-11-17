@@ -34,6 +34,7 @@ public:
 				catchCommand(message);
 				//receive server data
 				cout << _socket->receiveMessage_();
+				cout << std::flush;
 			}
 		}
 		catch (exception e)
