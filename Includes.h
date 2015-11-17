@@ -1,7 +1,7 @@
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
-#define WINDOWS
+#define UNIX
 
 #if defined(WINDOWS)
 #define _CRT_SECURE_NO_WARNINGS	//ctime unsafe
