@@ -34,6 +34,7 @@ public:
 				catchCommand(message);
 				//receive server data
 				cout << _socket->receiveMessage_();
+				cout << std::flush;
 			}
 		}
 		catch (exception e)
@@ -46,11 +47,11 @@ protected:
 	//------------------------------------files--------------------------------------//
 	bool sendFile(string& message)
 	{
-		return Connection::sendFile((Socket*)_socket.get(), message,std::bind(&Client::tryToReconnect, this, (Socket*)_socket.get(), std::placeholders::_1));
+		return Connection::sendFile((Socket*)_socket.get(), message,std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
 	}
 	bool receiveFile(string& message)
 	{
-		Connection::receiveFile((Socket*)_socket.get(), message, std::bind(&Client::tryToReconnect, this, (Socket*)_socket.get(), std::placeholders::_1));
+		Connection::receiveFile((Socket*)_socket.get(), message, std::bind(&Client::tryToReconnect, this, std::placeholders::_1));
 		//send confirm to the server handshake
 		return _socket->sendConfirm();
 	}
@@ -61,7 +62,7 @@ protected:
 		char arg = 0;
 		_udpSocket->send<char>(arg);
 
-		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, _udpSocket.get() , std::placeholders::_1));
+		return Connection::sendFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnectUdp, this, std::placeholders::_1));
 	}
 	bool receiveFileUdp(string& message)
 	{
@@ -69,28 +70,58 @@ protected:
 		_udpSocket->send<char>(arg);
 
 		//send client address to server for udp communication
-		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnect, this, _udpSocket.get() ,std::placeholders::_1));
+		Connection::receiveFile((Socket*)_udpSocket.get(), message, std::bind(&Client::tryToReconnectUdp, this,std::placeholders::_1));
 		//send confirm to the server handshake
 		return _socket->sendConfirm();
 	}
 
-	Socket* tryToReconnect(Socket* socket,int timeOut)
+	Socket* tryToReconnect(int timeOut)
 	{
 		time_t firstTimePoint = std::time(NULL);
 		time_t timeDifference;
 		while (true)
 		{
-
 			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
 			if (timeDifference > timeOut) break;
-			if (socket->attachClientSocket())
+			if (_socket->attachClientSocket())
 			{	//it managed to reconnect
 				//send client id to server
-				socket->send(_id);
+				_socket->send(_id);
 
-				return socket;
+				return _socket.get();
 			}
 		}
+		return nullptr;
+	}
+
+	Socket* tryToReconnectUdp(int timeOut)
+	{
+		time_t firstTimePoint = std::time(NULL);
+		time_t timeDifference;
+		int answer = 0;
+		/*
+		while (true)
+		{
+			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
+			if (timeDifference > timeOut) return nullptr;
+
+			if (_udpSocket->attachClientSocket()) break;
+		}
+		*/
+		int window = timeOut / 6;
+		_udpSocket->setReceiveTimeOut(window);
+		while (true)
+		{
+			timeDifference = std::difftime(std::time(NULL), firstTimePoint);
+			if (timeDifference > timeOut) return nullptr;
+
+			_udpSocket->send(_id);
+			_udpSocket->receive<int>(answer);
+			
+			if(answer == _id)
+				return _udpSocket.get();
+		}
+		
 		return nullptr;
 	}
 
