@@ -311,7 +311,6 @@ public:
 		return message;
 	}
 
-
 	int sendall(const char* buf, int len, int flags)
 	{
 		int total = 0;
