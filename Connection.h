@@ -26,6 +26,7 @@ private:
 
 	//percent counter
 	int _totalPercent;
+	bool _flHundred;
 
 	//UDP packet control
 	vector<int> _trackedDatagrams;
@@ -39,7 +40,7 @@ public:
 		_tryToReconnect = tryToReconnect;
 
 		_totallyBytesReceived = 0;
-		_totallyBytesReceived = 0;
+		_totallyBytesSend = 0;
 		_fileLength = 0;
 
 		_totalPercent = 0;
@@ -117,10 +118,8 @@ public:
 				stream << placeholder;
 
 		if (loadingPercent == 100)
-		{
 			stream << loadingPercent << endl;
-			_totalPercent = 0;
-		}
+
 		stream << std::flush;
 		_totalPercent = loadingPercent;
 		return;
@@ -132,13 +131,14 @@ public:
 		//send OOB_byte
 		_socket->send_OOB_byte(loadingPercent);
 	}
-	void trackReceivePercent()
+	bool trackReceivePercent()
 	{
 		char loadingPercent = 0;
-		_socket->recv_OOB_byte(loadingPercent);
+		if (_socket->recv_OOB_byte(loadingPercent) != 1) return false;
 		showPercents(cout, loadingPercent, 20, '.');
+		return true;
 	}
-	char percentOfLoading(int bytesWrite)
+	char percentOfLoading(const int bytesWrite)
 	{
 		return (char)(((double)bytesWrite / _fileLength) * 100);
 	}
@@ -194,8 +194,7 @@ public:
 				if (_socket->protocol() == IPPROTO_UDP)
 					trackSendingDatagrams();
 				//send OOB byte with loading percent value
-				if (_socket->protocol() == IPPROTO_TCP)
-					trackSendPercent();
+				(_socket->protocol() == IPPROTO_TCP) ? trackSendPercent() : showPercents(cout, percentOfLoading(_totallyBytesSend), 20, '.');
 
 				if (_rdFile.eof())
 				{
@@ -247,16 +246,20 @@ public:
 		if (_buffer.size() < _bufLen)
 			_buffer.resize(_bufLen);
 
-		_socket->setReceiveTimeOut(_timeOut);
+		_socket->setReceiveTimeOut(_timeOut >> 2);
 
 		int bytesRead = 0;
+		int rest = 0;
 		outFileInfo(cout);
 		//file writing
 		while (true)
 		{
 			try
 			{
-				bytesRead = _socket->receive(_buffer.data(), _bufLen);
+				if( (rest = _fileLength - _totallyBytesReceived) < _bufLen )
+					bytesRead = _socket->recvall(_buffer.data(), rest,0);
+				else
+					bytesRead = _socket->recvall(_buffer.data(), _bufLen, 0);
 
 				if (bytesRead == SOCKET_ERROR)
 					throw runtime_error("connection is lost");
@@ -264,6 +267,7 @@ public:
 				else if (bytesRead == 0)
 					//connection close
 					break;
+				if (bytesRead < _bufLen) cout << "les";
 				//file writing
 				_wrFile.write(_buffer.data(), bytesRead);
 
@@ -272,16 +276,16 @@ public:
 				if (_socket->protocol() == IPPROTO_UDP)
 					trackReceivingDatagrams();
 				//recv OOB byte with loading percent value
-				(_socket->protocol() == IPPROTO_TCP) ? trackReceivePercent() : showPercents(cout,percentOfLoading(_totallyBytesReceived),20,'.');
-
-
-				//end of transition check
+				//(_socket->protocol() == IPPROTO_TCP) ? trackReceivePercent() : showPercents(cout,percentOfLoading(_totallyBytesReceived),20,'.');
+				if (_socket->protocol() == IPPROTO_TCP)
+					if(!trackReceivePercent())
+						throw runtime_error("connection is lostaga");
+				
+				
 				if (_totallyBytesReceived == _fileLength)
 				{//file uploaded
-					_socket->setSendTimeOut(_timeOut >> 1);
 				 //transmit to server bytes number that has received
 					_socket->send(_totallyBytesReceived);
-					_socket->disableSendTimeOut();
 					break;
 				}
 			}
@@ -305,6 +309,7 @@ private:
 			_wrFile.close();
 			return false;
 		}
+
 		_socket->setReceiveTimeOut(_timeOut);
 		return _socket->send(_totallyBytesReceived);
 	}
